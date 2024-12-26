@@ -1,65 +1,60 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = [
-#     "matplotlib",
-#     "scipy"
-# ]
+# dependencies = ["matplotlib", "scipy"]
 # ///
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Button
 import numpy as np
-import scipy.signal as sig
-import matplotlib.animation as animation
-
-GRIDSIZE = 50  # Made smaller for better visibility
+from matplotlib.widgets import Button
+from matplotlib.animation import FuncAnimation
+from scipy.signal import convolve2d
 
 NEIGHBORS = np.array([
     [1, 1, 1],
     [1, 0, 1],
     [1, 1, 1]
 ])
+class ConwaysLife:
+    def __init__(self, size=50):
+        self.size = size
+        self.grid = np.zeros((size, size))
+        self.timeflow = False
+        self.setup_plot()
+        
+    def setup_plot(self):
+        self.fig, self.ax = plt.subplots(figsize=(8, 8))
+        self.img = self.ax.imshow(self.grid, cmap='binary', vmin=0, vmax=1)
+        self.fig.canvas.mpl_connect('button_press_event', self.grid_select)
+        
+        # Add play/pause button
+        button_ax = self.fig.add_axes([0.0, 0.0, 0.2, 0.075])
+        self.button = Button(button_ax, 'Play/Pause')
+        self.button.on_clicked(lambda _: self.toggle_timeflow())
+        
+    def grid_select(self, event):
+        if event.inaxes != self.ax:
+            return
+        x, y = map(round, (event.xdata, event.ydata))
+        if 0 <= x < self.size and 0 <= y < self.size:
+            self.grid[y, x] = 1 - self.grid[y, x]  
+            self.img.set_array(self.grid)
+            self.fig.canvas.draw()
+            
+    def toggle_timeflow(self):
+        self.timeflow = not self.timeflow
+        
+    def tick(self, frame=None):
+        if not self.timeflow:
+            return [self.img]
+            
+        neighbors = convolve2d(self.grid, NEIGHBORS, mode='same', boundary='wrap')
+        self.grid = (((neighbors == 3) | ((self.grid == 1) & (neighbors == 2)))).astype(int)
+        self.img.set_array(self.grid)
+        return [self.img]
+        
+    def run(self):
+        self.anim = FuncAnimation(self.fig, self.tick, interval=100, blit=True, save_count=100)
+        plt.show()
 
-# Initialize grid with some cells alive
-grid = np.zeros((GRIDSIZE, GRIDSIZE))
-timeflow = False
-
-def gridselect(event):
-    # Only act if the click is inside the main plot area
-    if event.inaxes != ax:  # Check if click is specifically on the main axes
-        return
-    x = round(event.xdata)
-    y = round(event.ydata)
-    
-    # Make sure we're within grid bounds
-    if 0 <= x < GRIDSIZE and 0 <= y < GRIDSIZE:
-        grid[y, x] = 1 - grid[y, x]
-        img.set_array(grid)
-        fig.canvas.draw()
-
-def pauseplay(event):
-    global timeflow
-    timeflow = not timeflow
-
-# Set up figure
-fig, ax = plt.subplots(figsize=(8, 8))
-img = ax.imshow(grid, cmap='binary', interpolation='nearest', vmin=0, vmax=1)
-fig.canvas.mpl_connect('button_press_event', gridselect)
-axpauseplay = fig.add_axes([0.0, 0.0, 0.2, 0.075])
-pauseplaybutton = Button(axpauseplay, 'Pause/Play')
-pauseplaybutton.on_clicked(pauseplay)
-
-def tick(frame=None):
-    global grid
-    if not timeflow:
-        return [img]
-    counts = sig.convolve2d(grid, NEIGHBORS, boundary="wrap", mode="same")
-    new_grid = np.zeros_like(grid)
-    new_grid[(counts == 3) | ((grid == 1) & (counts == 2))] = 1
-    grid = new_grid
-    print("ticking")
-    img.set_array(grid)
-    return [img]
-
-# Set up animation
-ani = animation.FuncAnimation(fig, tick, interval=200, blit=True)
-plt.show()
+if __name__ == '__main__':
+    game = ConwaysLife()
+    game.run()
