@@ -2,13 +2,12 @@
 
 #define SIZE 40
 #define CELL 20
-#define PADDED_SIZE (SIZE + 2)
 
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Event event;
 int running = 1;
-int grid[PADDED_SIZE][PADDED_SIZE] = {0};
+int grid[SIZE][SIZE] = {0};
 int timeflow = 0;
 
 void draw() {
@@ -26,7 +25,7 @@ void draw() {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     for (int y = 0; y < SIZE; y++)
         for (int x = 0; x < SIZE; x++)
-            if (grid[y+1][x+1]) {
+            if (grid[y][x]) {
                 SDL_Rect cell = {x*CELL+1, y*CELL+1, CELL-1, CELL-1};
                 SDL_RenderFillRect(renderer, &cell);
             }
@@ -39,40 +38,27 @@ void draw() {
 
 void toggle_cell(int x, int y) {
     if (x >= 0 && x < SIZE && y >= 0 && y < SIZE)
-        grid[y+1][x+1] = !grid[y+1][x+1];
-}
-
-void update_padding() {
-    for (int i = 1; i <= SIZE; i++) {
-        grid[0][i] = grid[SIZE][i];
-        grid[PADDED_SIZE-1][i] = grid[1][i];
-        grid[i][0] = grid[i][SIZE];
-        grid[i][PADDED_SIZE-1] = grid[i][1];
-    }
-    grid[0][0] = grid[SIZE][SIZE];
-    grid[0][PADDED_SIZE-1] = grid[SIZE][1];
-    grid[PADDED_SIZE-1][0] = grid[1][SIZE];
-    grid[PADDED_SIZE-1][PADDED_SIZE-1] = grid[1][1];
+        grid[y][x] = !grid[y][x];
 }
 
 int get_neighbors(int x, int y) {
     int n = 0;
     for (int dy = -1; dy <= 1; dy++)
         for (int dx = -1; dx <= 1; dx++)
-            if (dx || dy) n += grid[y+dy][x+dx];
+            if (dx || dy)  // Skip the center cell
+                n+= grid[(y + dy + SIZE) % SIZE][(x + dx + SIZE) % SIZE];
     return n;
 }
 
 void tick() {
-    int newgrid[PADDED_SIZE][PADDED_SIZE] = {0};
-    for (int y = 1; y <= SIZE; y++)
-        for (int x = 1; x <= SIZE; x++) {
+    int newgrid[SIZE][SIZE] = {0};
+    for (int y = 0; y < SIZE; y++)
+        for (int x = 0; x < SIZE; x++) {
             int n = get_neighbors(x, y);
             if (n == 3 || (grid[y][x] && n == 2))
                 newgrid[y][x] = 1;
         }
     memcpy(grid, newgrid, sizeof(grid));
-    update_padding();
 }
 
 int main() {
