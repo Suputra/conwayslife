@@ -9,6 +9,7 @@ SDL_Event event;
 int running = 1;
 int grid[SIZE][SIZE] = {0};
 int timeflow = 0;
+int speed = 100;
 
 void draw() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -71,10 +72,12 @@ int main() {
             if (event.type == SDL_QUIT) running = 0;
             if (event.type == SDL_MOUSEBUTTONDOWN) toggle_cell(event.button.x/CELL, event.button.y/CELL);
             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) timeflow = !timeflow;
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT) speed = speed <= 0 ? 0 : speed - 10;
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_LEFT) speed = speed >= 1000 ? 1000 : speed + 10;
         }
         if (timeflow) {
             tick();
-            SDL_Delay(50);
+            SDL_Delay(speed);
         }
         draw();
     }
